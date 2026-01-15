@@ -263,9 +263,6 @@ func updateVideoSingleTask(ctx context.Context, adaptor channel.TaskAdaptor, cha
 		task.Progress = taskResult.Progress
 	}
 
-	// 记录状态变化（用于回调触发判断）
-	preStatus := task.Status
-
 	if err := task.Update(); err != nil {
 		common.SysLog("UpdateVideoTask task error: " + err.Error())
 		shouldRefund = false

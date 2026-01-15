@@ -29,13 +29,13 @@ func TriggerTaskCallback(task *model.Task) {
 		return
 	}
 
+	ctx := context.Background()
+
 	// 验证回调URL
 	if !isValidCallbackURL(task.CallBackUrl) {
-		logger.SysLog(fmt.Sprintf("Invalid callback URL for task %s: %s", task.TaskID, task.CallBackUrl))
+		logger.LogError(ctx, fmt.Sprintf("Invalid callback URL for task %s: %s", task.TaskID, task.CallBackUrl))
 		return
 	}
-
-	ctx := context.Background()
 
 	// 构建回调payload
 	payload := buildCallbackPayload(task)
@@ -53,11 +53,11 @@ func TriggerTaskCallback(task *model.Task) {
 					"callback_time":        time.Now().Unix(),
 					"callback_retry_count": i + 1,
 				}).Error
-			logger.SysLog(fmt.Sprintf("Task callback success: %s, attempt: %d", task.TaskID, i+1))
+			logger.LogInfo(ctx, fmt.Sprintf("Task callback success: %s, attempt: %d", task.TaskID, i+1))
 			return
 		}
 
-		logger.SysLog(fmt.Sprintf("Task callback failed (attempt %d/%d): %s, error: %s",
+		logger.LogWarn(ctx, fmt.Sprintf("Task callback failed (attempt %d/%d): %s, error: %s",
 			i+1, maxRetries, task.TaskID, err.Error()))
 
 		// 更新重试次数
@@ -78,19 +78,19 @@ func TriggerTaskCallback(task *model.Task) {
 			"callback_status": CallbackStatusFailed,
 			"callback_time":   time.Now().Unix(),
 		}).Error
-	logger.SysLog(fmt.Sprintf("Task callback failed after all retries: %s", task.TaskID))
+	logger.LogError(ctx, fmt.Sprintf("Task callback failed after all retries: %s", task.TaskID))
 }
 
 func buildCallbackPayload(task *model.Task) *dto.TaskCallbackPayload {
 	state := mapStatusToState(task.Status)
-	model := task.Properties.OriginModelName
-	if model == "" {
-		model = task.Properties.UpstreamModelName
+	modelName := task.Properties.OriginModelName
+	if modelName == "" {
+		modelName = task.Properties.UpstreamModelName
 	}
 
 	payload := &dto.TaskCallbackPayload{
 		TaskId:    task.TaskID,
-		Model:     model,
+		Model:     modelName,
 		State:     state,
 		Progress:  task.Progress,
 		CreatedAt: task.CreatedAt,

@@ -60,7 +60,14 @@ func UnifiedTaskCreate(c *gin.Context) {
 	}
 
 	// 6. 构建RelayInfo
-	info := relaycommon.GenRelayInfo(c, types.RelayFormatTask, nil, nil)
+	info, err := relaycommon.GenRelayInfo(c, types.RelayFormatTask, nil, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.UnifiedTaskCreateResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to generate relay info: " + err.Error(),
+		})
+		return
+	}
 	info.OriginModelName = req.Model
 	info.TaskRelayInfo = &relaycommon.TaskRelayInfo{
 		Action: mapping.Action,

@@ -154,6 +154,15 @@ func SetRelayRouter(router *gin.Engine) {
 		httpRouter.DELETE("/models/:model", controller.RelayNotImplemented)
 	}
 
+	// 统一任务API (Unified Task API)
+	unifiedTaskRouter := relayV1Router.Group("/task")
+	unifiedTaskRouter.Use(middleware.Distribute())
+	{
+		unifiedTaskRouter.POST("/create", controller.UnifiedTaskCreate)
+		unifiedTaskRouter.GET("/fetch/:taskId", controller.UnifiedTaskFetch)
+		unifiedTaskRouter.GET("/fetch", controller.UnifiedTaskFetchBatch)
+	}
+
 	relayMjRouter := router.Group("/mj")
 	registerMjRouterGroup(relayMjRouter)
 

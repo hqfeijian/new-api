@@ -275,11 +275,23 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (taskErr *dto.
 	task.Quota = quota
 	task.Data = taskData
 	task.Action = info.Action
+
+	// 保存回调URL（如果有）
+	callbackUrl := c.GetString("callback_url")
+	if callbackUrl != "" {
+		task.CallBackUrl = callbackUrl
+		task.CallBackStatus = "PENDING"
+	}
+
 	err = task.Insert()
 	if err != nil {
 		taskErr = service.TaskErrorWrapper(err, "insert_task_failed", http.StatusInternalServerError)
 		return
 	}
+
+	// 设置created_task_id到context供控制器使用
+	c.Set("created_task_id", taskID)
+
 	return nil
 }
 

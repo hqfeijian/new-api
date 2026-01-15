@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
@@ -179,9 +180,22 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 		}
 		task.Data = responseItem.Data
 
+		// 记录状态变化（用于回调触发判断）
+		preStatus := task.Status
+
 		err = task.Update()
 		if err != nil {
 			common.SysLog("UpdateMidjourneyTask task error: " + err.Error())
+		}
+
+		// 任务状态变更为成功或失败时触发回调
+		if (task.Status == model.TaskStatusSuccess || task.Status == model.TaskStatusFailure) && preStatus != task.Status {
+			if task.CallBackUrl != "" && task.CallBackStatus != service.CallbackStatusSuccess {
+				ctx := context.Background()
+				common.RelayCtxGo(ctx, func() {
+					service.TriggerTaskCallback(task)
+				})
+			}
 		}
 	}
 	return nil

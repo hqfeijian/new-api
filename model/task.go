@@ -60,6 +60,11 @@ type Task struct {
 	// 禁止返回给用户，内部可能包含key等隐私信息
 	PrivateData TaskPrivateData `json:"-" gorm:"column:private_data;type:json"`
 	Data        json.RawMessage `json:"data" gorm:"type:json"`
+	// Callback related fields
+	CallBackUrl        string `json:"callback_url" gorm:"type:varchar(500)"`
+	CallBackStatus     string `json:"callback_status" gorm:"type:varchar(20)"`
+	CallBackRetryCount int    `json:"callback_retry_count" gorm:"default:0"`
+	CallBackTime       int64  `json:"callback_time" gorm:"index"`
 }
 
 func (t *Task) SetData(data any) {

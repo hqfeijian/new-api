@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/relay"
 	"github.com/QuantumNous/new-api/relay/channel"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -261,9 +262,22 @@ func updateVideoSingleTask(ctx context.Context, adaptor channel.TaskAdaptor, cha
 	if taskResult.Progress != "" {
 		task.Progress = taskResult.Progress
 	}
+
+	// 记录状态变化（用于回调触发判断）
+	preStatus := task.Status
+
 	if err := task.Update(); err != nil {
 		common.SysLog("UpdateVideoTask task error: " + err.Error())
 		shouldRefund = false
+	}
+
+	// 任务状态变更为成功或失败时触发回调
+	if (task.Status == model.TaskStatusSuccess || task.Status == model.TaskStatusFailure) && preStatus != task.Status {
+		if task.CallBackUrl != "" && task.CallBackStatus != service.CallbackStatusSuccess {
+			common.RelayCtxGo(ctx, func() {
+				service.TriggerTaskCallback(task)
+			})
+		}
 	}
 
 	if shouldRefund {
